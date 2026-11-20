@@ -7,6 +7,7 @@ import 'package:immich_mobile/domain/models/asset/base_asset.model.dart';
 import 'package:immich_mobile/generated/translations.g.dart';
 import 'package:immich_mobile/presentation/actions/action.dart';
 import 'package:immich_mobile/providers/backup/asset_upload_progress.provider.dart';
+import 'package:immich_mobile/providers/infrastructure/sync.provider.dart';
 import 'package:immich_mobile/providers/infrastructure/toast.provider.dart';
 import 'package:immich_mobile/services/foreground_upload.service.dart';
 import 'package:immich_mobile/utils/error_handler.dart';
@@ -67,6 +68,7 @@ Future<void> uploadAssets(BuildContext context, WidgetRef ref, List<LocalAsset> 
   final progress = ref.read(assetUploadProgressProvider.notifier);
   final uploads = ref.read(foregroundUploadServiceProvider);
   final toastService = ref.read(toastServiceProvider);
+  final hashService = ref.read(hashServiceProvider);
   final errorMessage = context.t.scaffold_body_error_occurred;
 
   final cancelToken = Completer<void>();
@@ -96,6 +98,17 @@ Future<void> uploadAssets(BuildContext context, WidgetRef ref, List<LocalAsset> 
     );
   } finally {
     ref.read(manualUploadCancelTokenProvider.notifier).state = null;
+  }
+
+  // PhotoPI: give the uploaded phone files their checksum (an album not selected for backup is never hashed),
+  // so they show as backed up right away.
+  final done = [for (final a in assets) if (uploaded.contains(a.id) && !failed.contains(a.id)) a];
+  if (done.isNotEmpty) {
+    try {
+      await hashService.hashLocalAssets(done);
+    } catch (error, stack) {
+      handleError(error, stack: stack, description: "Failed to hash the uploaded assets");
+    }
   }
 
   final uploadedCount = uploaded.difference(failed).length;
