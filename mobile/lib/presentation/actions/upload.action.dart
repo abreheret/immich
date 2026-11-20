@@ -7,6 +7,7 @@ import 'package:immich_mobile/domain/models/asset/base_asset.model.dart';
 import 'package:immich_mobile/generated/translations.g.dart';
 import 'package:immich_mobile/presentation/actions/action.dart';
 import 'package:immich_mobile/providers/api.provider.dart';
+import 'package:immich_mobile/providers/background_sync.provider.dart';
 import 'package:immich_mobile/providers/backup/asset_upload_progress.provider.dart';
 import 'package:immich_mobile/providers/infrastructure/db.provider.dart';
 import 'package:immich_mobile/providers/infrastructure/toast.provider.dart';
@@ -71,6 +72,7 @@ Future<void> uploadAssets(BuildContext context, WidgetRef ref, List<LocalAsset> 
   final toastService = ref.read(toastServiceProvider);
   final assetsApi = ref.read(apiServiceProvider).assetsApi;
   final localAssetRepository = ref.read(driftProvider).localAssetRepository;
+  final syncManager = ref.read(backgroundSyncProvider);
   final errorMessage = context.t.scaffold_body_error_occurred;
 
   final cancelToken = Completer<void>();
@@ -127,6 +129,11 @@ Future<void> uploadAssets(BuildContext context, WidgetRef ref, List<LocalAsset> 
     try {
       await localAssetRepository.updateHashes(checksums);
     } catch (_) {}
+  }
+  // PhotoPI has no websocket to tell the app about the new server assets: fetch them now (in the background),
+  // so the uploaded photos show as backed up right away instead of at the next sync.
+  if (uploaded.isNotEmpty) {
+    unawaited(syncManager.syncRemote());
   }
 
   final uploadedCount = uploaded.difference(failed).length;
