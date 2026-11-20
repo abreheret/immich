@@ -6,8 +6,9 @@ import 'package:immich_mobile/constants/enums.dart';
 import 'package:immich_mobile/domain/models/asset/base_asset.model.dart';
 import 'package:immich_mobile/generated/translations.g.dart';
 import 'package:immich_mobile/presentation/actions/action.dart';
+import 'package:immich_mobile/providers/api.provider.dart';
 import 'package:immich_mobile/providers/backup/asset_upload_progress.provider.dart';
-import 'package:immich_mobile/providers/infrastructure/sync.provider.dart';
+import 'package:immich_mobile/providers/infrastructure/db.provider.dart';
 import 'package:immich_mobile/providers/infrastructure/toast.provider.dart';
 import 'package:immich_mobile/services/foreground_upload.service.dart';
 import 'package:immich_mobile/utils/error_handler.dart';
@@ -68,13 +69,15 @@ Future<void> uploadAssets(BuildContext context, WidgetRef ref, List<LocalAsset> 
   final progress = ref.read(assetUploadProgressProvider.notifier);
   final uploads = ref.read(foregroundUploadServiceProvider);
   final toastService = ref.read(toastServiceProvider);
-  final hashService = ref.read(hashServiceProvider);
+  final assetsApi = ref.read(apiServiceProvider).assetsApi;
+  final localAssetRepository = ref.read(driftProvider).localAssetRepository;
   final errorMessage = context.t.scaffold_body_error_occurred;
 
   final cancelToken = Completer<void>();
   ref.read(manualUploadCancelTokenProvider.notifier).state = cancelToken;
 
   final uploaded = <String>{};
+  final remoteIds = <String, String>{};
   final failed = <String>{};
   for (final asset in assets) {
     progress.setProgress(asset.id, 0.0);
@@ -86,8 +89,9 @@ Future<void> uploadAssets(BuildContext context, WidgetRef ref, List<LocalAsset> 
       cancelToken: cancelToken,
       callbacks: UploadCallbacks(
         onProgress: (id, _, bytes, total) => progress.setProgress(id, total > 0 ? bytes / total : 0.0),
-        onSuccess: (id, _) {
+        onSuccess: (id, remoteId) {
           uploaded.add(id);
+          remoteIds[id] = remoteId;
           progress.remove(id);
         },
         onError: (id, _) {
@@ -100,15 +104,29 @@ Future<void> uploadAssets(BuildContext context, WidgetRef ref, List<LocalAsset> 
     ref.read(manualUploadCancelTokenProvider.notifier).state = null;
   }
 
-  // PhotoPI: give the uploaded phone files their checksum (an album not selected for backup is never hashed),
-  // so they show as backed up right away.
-  final done = [for (final a in assets) if (uploaded.contains(a.id) && !failed.contains(a.id)) a];
-  if (done.isNotEmpty) {
-    try {
-      await hashService.hashLocalAssets(done);
-    } catch (error, stack) {
-      handleError(error, stack: stack, description: "Failed to hash the uploaded assets");
+  // PhotoPI: the app only hashes the phone albums selected for backup. A photo uploaded by hand from another
+  // album (WhatsApp...) had no checksum, so the app never matched it with its server copy (crossed cloud).
+  // The server computed the checksum of the uploaded file: copy it onto the phone asset. No native hashing
+  // here (it can be cancelled by the background hashing and then never answer).
+  final checksums = <String, String>{};
+  for (final asset in assets) {
+    final remoteId = remoteIds[asset.id];
+    if (asset.checksum != null || remoteId == null || failed.contains(asset.id)) {
+      continue;
     }
+    try {
+      final info = await assetsApi.getAssetInfo(remoteId).timeout(const Duration(seconds: 10));
+      if (info != null && info.checksum.isNotEmpty) {
+        checksums[asset.id] = info.checksum;
+      }
+    } catch (_) {
+      // not critical: the photo is uploaded, it only keeps its crossed cloud
+    }
+  }
+  if (checksums.isNotEmpty) {
+    try {
+      await localAssetRepository.updateHashes(checksums);
+    } catch (_) {}
   }
 
   final uploadedCount = uploaded.difference(failed).length;

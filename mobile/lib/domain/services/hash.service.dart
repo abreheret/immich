@@ -102,24 +102,6 @@ class HashService {
     await _processBatch(album, toHash, isTrashed);
   }
 
-  /// PhotoPI: hashes these phone files whatever their album. The regular pass above only hashes the albums
-  /// selected for backup, so a photo uploaded by hand from another album (WhatsApp...) kept no checksum: the
-  /// app could not match it with its new server copy and showed it as not backed up forever.
-  Future<void> hashLocalAssets(List<LocalAsset> assets) async {
-    final ids = [for (final a in assets) if (a.checksum == null) a.id];
-    if (ids.isEmpty) {
-      return;
-    }
-    final results = await _nativeSyncApi.hashAssets(ids, allowNetworkAccess: false);
-    final hashed = {for (final r in results) if (r.hash != null) r.assetId: r.hash!};
-    if (hashed.length != ids.length) {
-      _log.warning("Hashed ${hashed.length}/${ids.length} manually uploaded assets");
-    }
-    if (hashed.isNotEmpty) {
-      await _localAssetRepository.updateHashes(hashed);
-    }
-  }
-
   /// Processes a batch of assets.
   Future<void> _processBatch(LocalAlbum album, Map<String, LocalAsset> toHash, bool isTrashed) async {
     if (toHash.isEmpty) {
