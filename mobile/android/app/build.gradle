@@ -37,12 +37,13 @@ android {
   }
 
   defaultConfig {
-    applicationId "app.alextran.immich"
+    // PhotoPI build: own id, installs next to the official Immich app
+    applicationId "app.alextran.immich.photopi"
     minSdk = 26
     targetSdk = flutter.targetSdkVersion
     versionCode flutter.versionCode
     versionName flutter.versionName
-    resValue "string", "app_name", "Immich"
+    resValue "string", "app_name", "Immich PhotoPI"
     buildConfigField "boolean", "PASSKEYS", "true"
   }
 

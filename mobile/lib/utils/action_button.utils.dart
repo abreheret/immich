@@ -16,6 +16,7 @@ import 'package:immich_mobile/presentation/actions/download.action.dart';
 import 'package:immich_mobile/presentation/actions/lock.action.dart';
 import 'package:immich_mobile/presentation/actions/open_in_browser.action.dart';
 import 'package:immich_mobile/presentation/actions/remove_from_album.action.dart';
+import 'package:immich_mobile/presentation/actions/remove_from_server.action.dart';
 import 'package:immich_mobile/presentation/actions/restore.action.dart';
 import 'package:immich_mobile/presentation/actions/set_album_cover.action.dart';
 import 'package:immich_mobile/presentation/actions/set_profile_picture.action.dart';
@@ -79,6 +80,7 @@ enum ActionButtonType {
   removeFromAlbum,
   restoreTrash,
   deleteLocal,
+  removeFromServer, // PhotoPI
   delete,
   advancedInfo;
 
@@ -119,6 +121,10 @@ enum ActionButtonType {
             context.asset.hasRemote,
       ActionButtonType.deleteLocal =>
         !context.isInLockedView && //
+            context.asset.isMerged,
+      ActionButtonType.removeFromServer =>
+        context.isOwner && //
+            !context.isInLockedView && //
             context.asset.isMerged,
       ActionButtonType.upload =>
         !context.isInLockedView && //
@@ -182,6 +188,7 @@ enum ActionButtonType {
       ActionButtonType.moveToLockFolder ||
       ActionButtonType.removeFromLockFolder => ActionMenuItem(action: LockAction(source: context.source)),
       ActionButtonType.deleteLocal => ActionMenuItem(action: CleanupLocalAction(source: context.source)),
+      ActionButtonType.removeFromServer => ActionMenuItem(action: RemoveFromServerAction(source: context.source)),
       ActionButtonType.upload => ActionMenuItem(
         action: UploadAction(source: context.source, showProgress: context.source == ActionSource.viewer),
       ),
@@ -236,6 +243,7 @@ enum ActionButtonType {
     ActionButtonType.unarchive => 10,
     ActionButtonType.moveToLockFolder => 10,
     ActionButtonType.deleteLocal => 10,
+    ActionButtonType.removeFromServer => 10,
     ActionButtonType.delete => 10,
     ActionButtonType.restoreTrash => 10,
     // 90: advancedInfo

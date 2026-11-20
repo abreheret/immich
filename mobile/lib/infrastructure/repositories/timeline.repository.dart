@@ -146,6 +146,8 @@ class TimelineRepository extends DatabaseAccessor<Drift> with $TimelineRepositor
             leftOuterJoin(
               _db.remoteAssetEntity,
               _db.localAssetEntity.checksum.equalsExp(_db.remoteAssetEntity.checksum) &
+                  // PhotoPI: a hidden twin was removed from the server; show the phone copy only
+                  _db.remoteAssetEntity.visibility.equalsValue(AssetVisibility.hidden).not() &
                   _db.remoteAssetEntity.ownerId.isInQuery(
                     _db.selectOnly(_db.authUserEntity)
                       ..addColumns([_db.authUserEntity.id])

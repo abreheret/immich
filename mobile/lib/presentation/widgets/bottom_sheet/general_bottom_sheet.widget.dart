@@ -12,6 +12,7 @@ import 'package:immich_mobile/presentation/actions/edit_datetime.action.dart';
 import 'package:immich_mobile/presentation/actions/edit_location.action.dart';
 import 'package:immich_mobile/presentation/actions/favorite.action.dart';
 import 'package:immich_mobile/presentation/actions/lock.action.dart';
+import 'package:immich_mobile/presentation/actions/remove_from_server.action.dart';
 import 'package:immich_mobile/presentation/actions/share.action.dart';
 import 'package:immich_mobile/presentation/actions/share_link.action.dart';
 import 'package:immich_mobile/presentation/actions/stack.action.dart';
@@ -81,6 +82,7 @@ class _GeneralBottomSheetState extends ConsumerState<GeneralBottomSheet> {
         .new(action: ShareLinkAction(source: .timeline)),
         .new(action: DownloadAction(source: .timeline)),
         .new(action: DeleteAction(source: .timeline)),
+        .new(action: RemoveFromServerAction(source: .timeline)),
         .new(action: FavoriteAction(source: .timeline)),
         .new(action: ArchiveAction(source: .timeline)),
         .new(action: TagAction(source: .timeline)),
