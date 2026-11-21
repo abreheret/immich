@@ -1,3 +1,17 @@
+> [!NOTE]
+> **Immich PhotoPI**: this branch (`photopi`) is a fork of the Immich Android app
+> (v3.4.2), made to work with [PhotoPI](https://github.com/abreheret/PhotoPI), a
+> lightweight Rust photo server for Raspberry Pi. Changes from upstream:
+>
+> - **Remove from server, keep on the phone**: a new action in the photo menu.
+> - A photo uploaded by hand from any album (not only the backup albums) shows
+>   as backed up right away.
+> - Its own application id (`app.alextran.immich.photopi`), so it installs next
+>   to the official app.
+>
+> Download the APK from the [latest release](https://github.com/abreheret/immich/releases/latest).
+> Not affiliated with the Immich project. Below is the original Immich README.
+
 <p align="center"> 
   <br/>
   <a href="https://opensource.org/license/agpl-v3"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg?color=3F51B5&style=for-the-badge&label=License&logoColor=000000&labelColor=ececec" alt="License: AGPLv3"></a>
